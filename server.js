@@ -36,6 +36,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve index.html for all web page requests
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // In-Memory Data Store (Fallback)
 let submissions = [];
 let autoApprove = false;
