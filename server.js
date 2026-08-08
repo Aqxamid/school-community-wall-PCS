@@ -121,6 +121,10 @@ function getSocketIp(socket) {
   return socket.handshake.address || socket.request?.socket?.remoteAddress || 'unknown';
 }
 
+function getClientIp(socket) {
+  return getSocketIp(socket);
+}
+
 function rateLimitMiddleware(req, res, next) {
   const ip = getRequestIp(req);
   if (!checkRateLimit(`http:${ip}`, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS)) {
@@ -301,7 +305,7 @@ io.on('connection', async (socket) => {
   socket.emit('init-state', publicState());
 
   socket.on('verify-admin-pass', (password, callback) => {
-    const ip = getClientIp(socket);
+    const ip = getSocketIp(socket);
     if (!checkRateLimit(`admin-login:${ip}`, 5, 10 * 60 * 1000)) {
       if (typeof callback === 'function') {
         callback({ success: false, error: 'Too many admin login attempts. Please wait before trying again.' });
@@ -327,7 +331,7 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('submit-post', async (data, callback) => {
-    const ip = getClientIp(socket);
+    const ip = getSocketIp(socket);
     if (!checkRateLimit(`submit:${ip}`, 5, 60 * 1000)) {
       if (typeof callback === 'function') {
         callback({ success: false, error: 'Too many submissions. Please wait a moment before posting again.' });
