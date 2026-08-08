@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>School Community Wall</title>
+  <link rel="icon" type="image/png" href="/app-icon.png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Socket.io Client Script -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/app.js" defer></script>
   <style>
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
@@ -18,40 +19,56 @@
       50% { box-shadow: 0 0 35px rgba(244, 63, 94, 0.9); }
     }
     .pinned-glow { animation: pulseGlow 2s infinite ease-in-out; }
+    .floating-brand-icon {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.45);
+      z-index: 50;
+      pointer-events: none;
+    }
+    .floating-brand-icon img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
-
-  <!-- MAIN VIEWS CONTAINER -->
+  <div class="floating-brand-icon pointer-events-none">
+    <img src="/app-icon.png" alt="School Community Wall logo" />
+  </div>
   <main class="flex-1 relative overflow-hidden">
-
-    <!-- 1. TV VIEW (DEFAULT) -->
-    <section id="view-tv" class="view-panel hidden absolute inset-0 bg-slate-950 overflow-hidden">
+    <section id="view-tv" class="view-panel hidden absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-[#062b45] overflow-hidden">
       <div id="tv-canvas" class="relative w-full h-full overflow-hidden"></div>
-      
-      <!-- Top Right Layout Controls -->
+
       <div class="absolute top-6 right-6 flex items-center pointer-events-none z-30">
-        <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-1.5 rounded-2xl flex gap-1 pointer-events-auto shadow-xl">
-          <button onclick="setTvLayout('bubbles')" id="layout-bubbles-btn" class="px-3 py-1.5 rounded-xl text-xs font-bold">Bubbles</button>
-          <button onclick="setTvLayout('grid')" id="layout-grid-btn" class="px-3 py-1.5 rounded-xl text-xs font-bold">Card Grid</button>
+        <div class="bg-slate-900/80 backdrop-blur-md border border-[#00bcff]/20 p-1.5 rounded-2xl flex gap-1 pointer-events-auto shadow-xl">
+          <button id="layout-bubbles-btn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold">Bubbles</button>
+          <button id="layout-grid-btn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold">Card Grid</button>
         </div>
       </div>
 
-      <!-- Bottom Left QR Code Overlay -->
-      <div class="absolute bottom-6 left-6 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-4 rounded-3xl shadow-2xl flex items-center gap-4 z-30 pointer-events-auto max-w-xs">
+      <div class="absolute bottom-6 left-6 bg-slate-900/90 backdrop-blur-md border border-[#00bcff]/20 p-4 rounded-3xl shadow-2xl flex items-center gap-4 z-30 pointer-events-auto max-w-xs">
         <img id="qr-code-img" src="" alt="Scan QR" class="w-20 h-20 bg-white p-1.5 rounded-2xl shrink-0">
         <div>
-          <span class="inline-block px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full text-[10px] font-bold uppercase mb-1">Scan to Join</span>
-          <p class="text-[10px] text-slate-400 mt-0.5">Scan with phone</p>
-          <p class="text-[10px] text-slate-400 mt-0.5">camera to post live.</p>
+          <span class="inline-block px-2 py-0.5 bg-[#00bcff]/20 text-[#00bcff] border border-[#00bcff]/30 rounded-full text-[10px] font-bold uppercase mb-1">Scan to Join</span>
+          <p class="text-[10px] text-slate-300 mt-0.5">Scan with phone</p>
+          <p class="text-[10px] text-slate-300 mt-0.5">camera to post live.</p>
         </div>
       </div>
 
-      <!-- Featured Contribution Spotlight Modal -->
       <div id="spotlight-modal" class="absolute inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-6 z-40 opacity-0 pointer-events-none transition-opacity duration-500">
-        <div id="spotlight-card" class="max-w-xl w-full bg-slate-900 border-2 border-indigo-500 rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform duration-500">
-          <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-4 inline-block">Featured Comment</span>
-          <p id="spotlight-text" class="text-2xl font-extrabold text-white leading-relaxed mb-6">""</p>
+        <div id="spotlight-card" class="max-w-xl w-full bg-slate-900 border-2 border-[#00bcff] rounded-3xl p-8 shadow-2xl transform scale-95 transition-transform duration-500">
+          <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#00bcff]/20 text-[#00bcff] border border-[#00bcff]/30 mb-4 inline-block">Featured Comment</span>
+          <p id="spotlight-text" class="text-2xl font-extrabold text-white leading-relaxed mb-6"></p>
           <div class="flex items-center gap-4 pt-4 border-t border-slate-800">
             <div id="spotlight-avatar" class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white text-lg">A</div>
             <div>
@@ -63,60 +80,56 @@
       </div>
     </section>
 
-    <!-- 2. MOBILE SUBMIT FORM (?view=submit) -->
     <section id="view-submit" class="view-panel hidden absolute inset-0 overflow-y-auto p-4 flex justify-center items-center">
       <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl my-auto">
         <div id="form-container">
           <div class="mb-6">
             <h2 class="text-2xl font-black text-white mt-1">What can you contribute to this school?</h2>
           </div>
-          <form onsubmit="handleFormSubmit(event)" class="space-y-4">
+          <form id="submit-form" class="space-y-4">
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Full Name or Nickname</label>
-              <input type="text" id="input-name" required maxlength="30" placeholder="e.g. Alex Rivera" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+              <input type="text" id="input-name" required maxlength="30" placeholder="e.g. Alex Rivera" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00bcff]">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Course & Year Level</label>
-              <input type="text" id="input-course" required maxlength="20" placeholder="e.g. BSCS 3-A" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+              <input type="text" id="input-course" required maxlength="20" placeholder="e.g. BSCS 3-A" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00bcff]">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Your Contribution</label>
-              <textarea id="input-message" required maxlength="200" rows="3" placeholder="e.g. I want to organize open-source peer tutoring workshops!" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+              <textarea id="input-message" required maxlength="200" rows="3" placeholder="e.g. I want to organize open-source peer tutoring workshops!" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#00bcff] resize-none"></textarea>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase mb-2">Choose Color</label>
               <div class="grid grid-cols-5 gap-2" id="color-selector"></div>
             </div>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition">Post to Wall</button>
+            <p id="submit-error-msg" class="text-xs text-rose-400 hidden"></p>
+            <button id="submit-post-btn" type="submit" class="w-full bg-[#00bcff] hover:bg-[#00a8e6] text-white font-bold py-3.5 rounded-xl shadow-lg transition">Post to Wall</button>
           </form>
         </div>
         <div id="success-container" class="hidden text-center py-8 space-y-4">
-          <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl animate-bounce">🔒</div>
+          <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-sm font-black">OK</div>
           <h3 class="text-2xl font-black text-white">Response Sent!</h3>
           <p class="text-slate-300 text-sm">Look up at the TV screen! Your message is being displayed live.</p>
-          <button onclick="resetForm()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold uppercase rounded-xl">Submit Another</button>
+          <button id="view-wall-btn" type="button" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold uppercase rounded-xl">View Community Wall</button>
         </div>
       </div>
     </section>
 
-    <!-- 3. ADMIN PANEL (?view=admin) -->
     <section id="view-admin" class="view-panel hidden absolute inset-0 overflow-y-auto p-6">
-      
-      <!-- Admin Lock Overlay -->
       <div id="admin-auth-overlay" class="absolute inset-0 bg-slate-950 flex items-center justify-center p-4 z-50">
         <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl text-center space-y-4">
-          <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto text-2xl">🔒</div>
+          <div class="w-12 h-12 bg-[#00bcff]/10 border border-[#00bcff]/30 rounded-2xl flex items-center justify-center mx-auto text-sm font-black">LOCK</div>
           <h3 class="text-xl font-bold text-white">Admin Authentication</h3>
           <p class="text-xs text-slate-400">Enter passcode to manage wall contributions.</p>
-          <form onsubmit="handleAdminLogin(event)" class="space-y-3">
-            <input type="password" id="admin-passcode-input" placeholder="Enter Admin Passcode" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-center focus:outline-none focus:border-indigo-500">
+          <form id="admin-login-form" class="space-y-3">
+            <input type="password" id="admin-passcode-input" placeholder="Enter Admin Passcode" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-center focus:outline-none focus:border-[#00bcff]">
             <p id="auth-error-msg" class="text-xs text-rose-400 hidden">Incorrect passcode</p>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition">Unlock Moderation Console</button>
+            <button type="submit" class="w-full bg-[#00bcff] hover:bg-[#00a8e6] text-white font-bold py-2.5 rounded-xl text-xs transition">Unlock Moderation Console</button>
           </form>
         </div>
       </div>
 
-      <!-- Admin Console (Hidden until authenticated) -->
       <div id="admin-content" class="max-w-6xl mx-auto space-y-6 hidden">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
@@ -124,266 +137,16 @@
           </div>
           <div class="flex items-center gap-6 bg-slate-950 p-3 rounded-2xl border border-slate-800">
             <div class="flex items-center gap-3">
-              <input type="checkbox" id="auto-approve-toggle" onchange="sendAdminAction('toggle-auto-approve', { autoApprove: this.checked })" class="w-5 h-5 accent-indigo-500 rounded cursor-pointer">
+              <input type="checkbox" id="auto-approve-toggle" class="w-5 h-5 accent-[#00bcff] rounded cursor-pointer">
               <label for="auto-approve-toggle" class="text-xs font-bold text-slate-200 cursor-pointer">Auto-Approve</label>
             </div>
-            <button onclick="if(confirm('Clear all data?')) sendAdminAction('clear-all', {})" class="px-3 py-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 text-xs font-bold rounded-xl">Reset Wall</button>
-            <button onclick="adminLogout()" class="px-3 py-1.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl hover:text-white">Logout</button>
+            <button id="clear-all-btn" type="button" class="px-3 py-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 text-xs font-bold rounded-xl">Reset Wall</button>
+            <button id="admin-logout-btn" type="button" class="px-3 py-1.5 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl hover:text-white">Logout</button>
           </div>
         </div>
         <div id="admin-posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
     </section>
-
   </main>
-
-  <script>
-    const socket = io();
-
-    const SPOTLIGHT_INTERVAL = 45000;
-    const SPOTLIGHT_DURATION = 5000;
-
-    const BUBBLE_COLORS = [
-      { id: 'indigo', bg: 'from-indigo-500 to-purple-600', text: 'text-indigo-200' },
-      { id: 'rose', bg: 'from-rose-500 to-pink-600', text: 'text-rose-200' },
-      { id: 'emerald', bg: 'from-emerald-500 to-teal-600', text: 'text-emerald-200' },
-      { id: 'amber', bg: 'from-amber-500 to-orange-600', text: 'text-amber-200' },
-      { id: 'cyan', bg: 'from-cyan-500 to-blue-600', text: 'text-cyan-200' }
-    ];
-
-    let state = { submissions: [], autoApprove: false, activeView: 'tv', selectedColor: BUBBLE_COLORS[0], tvLayout: 'bubbles' };
-
-    // SOCKET LISTENERS
-    socket.on('init-state', (data) => updateLocalState(data));
-    socket.on('state-changed', (data) => updateLocalState(data));
-
-    function updateLocalState(data) {
-      state.submissions = data.submissions;
-      state.autoApprove = data.autoApprove;
-      const toggle = document.getElementById('auto-approve-toggle');
-      if (toggle) toggle.checked = state.autoApprove;
-      renderActiveView();
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      setupColorPicker();
-      setupDynamicQRCode();
-      
-      // Default view is 'tv' unless ?view=submit or ?view=admin is provided
-      const urlParams = new URLSearchParams(window.location.search);
-      const requestedView = urlParams.get('view') || 'tv';
-      
-      switchView(requestedView);
-      initPhysicsLoop();
-      startSpotlightRotation();
-
-      // Check stored admin passcode
-      if (sessionStorage.getItem('adminPasscode')) {
-        verifyPasscode(sessionStorage.getItem('adminPasscode'));
-      }
-    });
-
-    function setupDynamicQRCode() {
-      // Directs phone scans straight to ?view=submit
-      const targetUrl = encodeURIComponent(`${window.location.origin}/?view=submit`);
-      document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${targetUrl}`;
-    }
-
-    function switchView(viewName) {
-      state.activeView = viewName;
-      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
-      
-      const targetView = document.getElementById(`view-${viewName}`);
-      if (targetView) targetView.classList.remove('hidden');
-      
-      renderActiveView();
-    }
-
-    function renderActiveView() {
-      if (state.activeView === 'tv') renderTvWall();
-      if (state.activeView === 'admin') renderAdminPanel();
-    }
-
-    // ADMIN AUTHENTICATION HANDLERS
-    function handleAdminLogin(e) {
-      e.preventDefault();
-      const input = document.getElementById('admin-passcode-input').value;
-      verifyPasscode(input);
-    }
-
-    function verifyPasscode(passcode) {
-      socket.emit('verify-admin-pass', passcode, (res) => {
-        if (res.success) {
-          sessionStorage.setItem('adminPasscode', passcode);
-          document.getElementById('admin-auth-overlay').classList.add('hidden');
-          document.getElementById('admin-content').classList.remove('hidden');
-          document.getElementById('auth-error-msg').classList.add('hidden');
-          renderAdminPanel();
-        } else {
-          sessionStorage.removeItem('adminPasscode');
-          document.getElementById('auth-error-msg').classList.remove('hidden');
-        }
-      });
-    }
-
-    function adminLogout() {
-      sessionStorage.removeItem('adminPasscode');
-      document.getElementById('admin-auth-overlay').classList.remove('hidden');
-      document.getElementById('admin-content').classList.add('hidden');
-      document.getElementById('admin-passcode-input').value = '';
-    }
-
-    function sendAdminAction(eventName, data) {
-      const passcode = sessionStorage.getItem('adminPasscode');
-      if (!passcode) {
-        alert("Session expired. Please log in again.");
-        adminLogout();
-        return;
-      }
-      socket.emit(eventName, { ...data, password: passcode });
-    }
-
-    // FORM HANDLER
-    function setupColorPicker() {
-      const container = document.getElementById('color-selector');
-      if (!container) return;
-      container.innerHTML = BUBBLE_COLORS.map((col, idx) => `
-        <button type="button" onclick="selectColor(${idx})" class="h-10 rounded-xl bg-gradient-to-tr ${col.bg} border-2 ${idx === 0 ? 'border-white' : 'border-transparent'} color-btn"></button>
-      `).join('');
-    }
-
-    function selectColor(index) {
-      state.selectedColor = BUBBLE_COLORS[index];
-      document.querySelectorAll('.color-btn').forEach((btn, i) => btn.className = `h-10 rounded-xl bg-gradient-to-tr ${BUBBLE_COLORS[i].bg} border-2 ${i === index ? 'border-white scale-105' : 'border-transparent'} color-btn`);
-    }
-
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      socket.emit('submit-post', {
-        name: document.getElementById('input-name').value.trim(),
-        course: document.getElementById('input-course').value.trim(),
-        message: document.getElementById('input-message').value.trim(),
-        color: state.selectedColor
-      });
-      document.getElementById('form-container').classList.add('hidden');
-      document.getElementById('success-container').classList.remove('hidden');
-    }
-
-    function resetForm() {
-      document.getElementById('input-name').value = '';
-      document.getElementById('input-course').value = '';
-      document.getElementById('input-message').value = '';
-      document.getElementById('form-container').classList.remove('hidden');
-      document.getElementById('success-container').classList.add('hidden');
-    }
-
-    // TV PHYSICS
-    let physicsNodes = [];
-    function setTvLayout(layout) {
-      state.tvLayout = layout;
-      document.getElementById('layout-bubbles-btn').className = `px-3 py-1.5 rounded-xl text-xs font-bold ${layout === 'bubbles' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`;
-      document.getElementById('layout-grid-btn').className = `px-3 py-1.5 rounded-xl text-xs font-bold ${layout === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`;
-      renderTvWall();
-    }
-
-    function renderTvWall() {
-      const approved = state.submissions.filter(s => s.status === 'approved');
-      const canvas = document.getElementById('tv-canvas');
-      if (!canvas) return;
-      canvas.innerHTML = '';
-
-      if (state.tvLayout === 'grid') {
-        canvas.className = "relative w-full h-full overflow-y-auto p-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
-        canvas.innerHTML = approved.map(post => `
-          <div onclick="triggerSpotlight('${post.id}')" class="cursor-pointer bg-slate-900 border ${post.pinned ? 'border-rose-500 pinned-glow' : 'border-slate-800'} p-6 rounded-3xl">
-            <div class="font-bold text-sm text-white mb-2">${post.name} (${post.course})</div>
-            <p class="text-sm text-slate-200">"${post.message}"</p>
-          </div>
-        `).join('');
-        physicsNodes = [];
-      } else {
-        canvas.className = "relative w-full h-full overflow-hidden";
-        physicsNodes = approved.map(post => {
-          const el = document.createElement('div');
-          const size = post.pinned ? 240 : 190;
-          el.className = `bubble absolute rounded-full p-6 flex flex-col justify-center items-center text-center cursor-pointer bg-gradient-to-tr ${post.color.bg} ${post.pinned ? 'pinned-glow border-2 border-rose-400' : 'border border-white/20'} shadow-2xl`;
-          el.style.width = `${size}px`;
-          el.style.height = `${size}px`;
-          el.innerHTML = `
-            <span class="text-[10px] font-black uppercase text-white/80 mb-1">${post.course}</span>
-            <p class="text-xs font-bold text-white line-clamp-3 leading-snug">"${post.message}"</p>
-            <span class="text-[11px] font-extrabold text-white mt-2">— ${post.name}</span>
-          `;
-          el.onclick = () => triggerSpotlight(post.id);
-          canvas.appendChild(el);
-          return { element: el, x: Math.random() * (window.innerWidth - size), y: Math.random() * (window.innerHeight - size), vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, radius: size / 2 };
-        });
-      }
-    }
-
-    function initPhysicsLoop() {
-      function updatePhysics() {
-        if (state.activeView === 'tv' && state.tvLayout === 'bubbles') {
-          physicsNodes.forEach(node => {
-            node.x += node.vx; node.y += node.vy;
-            if (node.x <= 0 || node.x + node.radius * 2 >= window.innerWidth) node.vx *= -1;
-            if (node.y <= 0 || node.y + node.radius * 2 >= window.innerHeight) node.vy *= -1;
-            node.element.style.transform = `translate3d(${node.x}px, ${node.y}px, 0)`;
-          });
-        }
-        requestAnimationFrame(updatePhysics);
-      }
-      updatePhysics();
-    }
-
-    function startSpotlightRotation() {
-      setInterval(() => {
-        if (state.activeView === 'tv') {
-          const approved = state.submissions.filter(s => s.status === 'approved');
-          if (approved.length > 0) triggerSpotlight(approved[Math.floor(Math.random() * approved.length)].id);
-        }
-      }, SPOTLIGHT_INTERVAL);
-    }
-
-    function triggerSpotlight(postId) {
-      const post = state.submissions.find(s => s.id === postId);
-      if (!post) return;
-      document.getElementById('spotlight-text').textContent = `"${post.message}"`;
-      document.getElementById('spotlight-name').textContent = post.name;
-      document.getElementById('spotlight-course').textContent = post.course;
-      const avatar = document.getElementById('spotlight-avatar');
-      avatar.textContent = post.name.charAt(0);
-      avatar.className = `w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white text-lg bg-gradient-to-tr ${post.color.bg}`;
-      
-      const modal = document.getElementById('spotlight-modal');
-      modal.classList.remove('opacity-0', 'pointer-events-none');
-      setTimeout(() => modal.classList.add('opacity-0', 'pointer-events-none'), SPOTLIGHT_DURATION);
-    }
-
-    // ADMIN PANEL RENDER
-    function renderAdminPanel() {
-      if (!sessionStorage.getItem('adminPasscode')) return;
-      const container = document.getElementById('admin-posts-grid');
-      if (!container) return;
-      container.innerHTML = state.submissions.map(post => `
-        <div class="bg-slate-900 border ${post.pinned ? 'border-rose-500' : 'border-slate-800'} p-5 rounded-2xl space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${post.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${post.status}</span>
-            ${post.pinned ? '<span class="text-xs text-rose-400 font-bold">Pinned</span>' : ''}
-          </div>
-          <p class="text-sm font-semibold text-white">"${post.message}"</p>
-          <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-            <div><span class="font-bold text-white">${post.name}</span> (${post.course})</div>
-            <div class="flex gap-1">
-              ${post.status !== 'approved' ? `<button onclick="sendAdminAction('update-status', { id: '${post.id}', status: 'approved' })" class="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded">Approve</button>` : ''}
-              ${post.status !== 'rejected' ? `<button onclick="sendAdminAction('update-status', { id: '${post.id}', status: 'rejected' })" class="px-2 py-1 bg-amber-500/10 text-amber-400 rounded">Reject</button>` : ''}
-              <button onclick="sendAdminAction('toggle-pin', { id: '${post.id}' })" class="px-2 py-1 bg-slate-800 text-slate-300 rounded">Pin</button>
-              <button onclick="sendAdminAction('delete-post', { id: '${post.id}' })" class="px-2 py-1 bg-rose-500/10 text-rose-400 rounded">Delete</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-  </script>
 </body>
 </html>

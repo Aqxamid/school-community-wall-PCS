@@ -21,9 +21,6 @@ pids
 .env
 .env.*
 
-# Optional npm package lock
-package-lock.json
-
 # OS files
 .DS_Store
 Thumbs.db
