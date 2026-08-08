@@ -18,6 +18,10 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const DISABLE_SUPABASE = process.env.DISABLE_SUPABASE === 'true';
 const ADMIN_SESSION_TTL_MS = Number(process.env.ADMIN_SESSION_TTL_MS || 2 * 60 * 60 * 1000);
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 120;
+const SOCKET_RATE_LIMIT_WINDOW_MS = 1 * 1000;
+const SOCKET_RATE_LIMIT_MAX_EVENTS = 30;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || `http://localhost:${PORT},http://127.0.0.1:${PORT}`)
   .split(',')
   .map(origin => origin.trim())
@@ -67,6 +71,7 @@ const io = new Server(server, {
 
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '8kb' }));
+app.use(rateLimitMiddleware);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -100,12 +105,28 @@ app.use((err, req, res, next) => {
 let submissions = [];
 let autoApprove = false;
 
-function getClientIp(socket) {
+function getRequestIp(req) {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
+}
+
+function getSocketIp(socket) {
   const forwardedFor = socket.handshake.headers['x-forwarded-for'];
   if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
     return forwardedFor.split(',')[0].trim();
   }
-  return socket.handshake.address || 'unknown';
+  return socket.handshake.address || socket.request?.socket?.remoteAddress || 'unknown';
+}
+
+function rateLimitMiddleware(req, res, next) {
+  const ip = getRequestIp(req);
+  if (!checkRateLimit(`http:${ip}`, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS)) {
+    return res.status(429).send('Too many requests. Please wait a moment and try again.');
+  }
+  next();
 }
 
 function checkRateLimit(key, maxHits, windowMs) {
@@ -267,6 +288,15 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 io.on('connection', async (socket) => {
+  socket.use(([event], next) => {
+    const ip = getSocketIp(socket);
+    if (!checkRateLimit(`socket:${ip}:${event}`, SOCKET_RATE_LIMIT_MAX_EVENTS, SOCKET_RATE_LIMIT_WINDOW_MS)) {
+      socket.emit('rate-limit', { error: 'Too many requests. Please slow down.' });
+      return;
+    }
+    next();
+  });
+
   await loadSubmissions();
   socket.emit('init-state', publicState());
 
